@@ -1,0 +1,42 @@
+// Prisma schema for Onramp
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  languages       String[]
+  frameworks      String[]
+  experienceLevel String   // 'beginner' | 'intermediate' | 'advanced'
+  interests       String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([experienceLevel])
+  @@map("user_profiles")
+}
+
+model RepositoryCache {
+  id          String   @id @default(uuid())
+  owner       String
+  name        String
+  url         String   @unique
+  analysisData Json    // Stores the complete RepositoryAnalysis object
+  analyzedAt  DateTime @default(now())
+  expiresAt   DateTime
+
+  @@unique([owner, name])
+  @@index([expiresAt])
+  @@index([owner])
+  @@index([analyzedAt])
+  @@map("repository_cache")
+}

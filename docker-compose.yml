@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: onramp-postgres
+    environment:
+      POSTGRES_USER: onramp
+      POSTGRES_PASSWORD: onramp_dev_password
+      POSTGRES_DB: onramp
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U onramp']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - onramp-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: onramp-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - onramp-network
+
+  # Backend API (optional - for full stack deployment)
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: onramp-backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://onramp:onramp_dev_password@postgres:5432/onramp
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: http://localhost:3000
+      # Add your API keys here or use .env file
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - '5000:5000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - onramp-network
+    profiles:
+      - fullstack
+
+  # Frontend (optional - for full stack deployment)
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    container_name: onramp-frontend
+    environment:
+      VITE_API_BASE_URL: http://backend:5000/api
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    networks:
+      - onramp-network
+    profiles:
+      - fullstack
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  onramp-network:
+    driver: bridge
