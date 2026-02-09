@@ -11,12 +11,14 @@ interface UserProfileFormProps {
 // Common programming languages and frameworks
 const POPULAR_LANGUAGES = [
   'JavaScript', 'TypeScript', 'Python', 'Java', 'Go', 'Rust',
-  'C++', 'C#', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'Scala'
+  'C++', 'C#', 'Ruby', 'PHP', 'Swift', 'Kotlin', 'Scala',
+  'Dart', 'Elixir', 'Haskell', 'Perl', 'R', 'Shell', 'SQL'
 ];
 
 const POPULAR_FRAMEWORKS = [
   'React', 'Vue', 'Angular', 'Next.js', 'Express', 'Django',
-  'Flask', 'Spring', 'Rails', 'Laravel', 'ASP.NET', 'FastAPI'
+  'Flask', 'Spring', 'Rails', 'Laravel', 'ASP.NET', 'FastAPI',
+  'Svelte', 'Nuxt', 'Nest.js', 'Gin', 'Fiber', 'Phoenix'
 ];
 
 const profileSchema = z.object({
@@ -40,6 +42,12 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
   const [interests, setInterests] = useState<string[]>(initialProfile?.interests || []);
   const [newInterest, setNewInterest] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Autocomplete states
+  const [languageSearch, setLanguageSearch] = useState('');
+  const [frameworkSearch, setFrameworkSearch] = useState('');
+  const [showLanguageSuggestions, setShowLanguageSuggestions] = useState(false);
+  const [showFrameworkSuggestions, setShowFrameworkSuggestions] = useState(false);
 
   const totalSteps = 4;
 
@@ -50,6 +58,47 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       setter([...list, item]);
     }
   };
+
+  const addCustomLanguage = () => {
+    const trimmed = languageSearch.trim();
+    if (trimmed && !languages.includes(trimmed)) {
+      setLanguages([...languages, trimmed]);
+      setLanguageSearch('');
+      setShowLanguageSuggestions(false);
+    }
+  };
+
+  const addCustomFramework = () => {
+    const trimmed = frameworkSearch.trim();
+    if (trimmed && !frameworks.includes(trimmed)) {
+      setFrameworks([...frameworks, trimmed]);
+      setFrameworkSearch('');
+      setShowFrameworkSuggestions(false);
+    }
+  };
+
+  const filteredLanguages = POPULAR_LANGUAGES.filter(lang =>
+    lang.toLowerCase().includes(languageSearch.toLowerCase()) &&
+    !languages.includes(lang)
+  );
+
+  const filteredFrameworks = POPULAR_FRAMEWORKS.filter(fw =>
+    fw.toLowerCase().includes(frameworkSearch.toLowerCase()) &&
+    !frameworks.includes(fw)
+  );
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setShowLanguageSuggestions(false);
+      setShowFrameworkSuggestions(false);
+    };
+    
+    if (showLanguageSuggestions || showFrameworkSuggestions) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showLanguageSuggestions, showFrameworkSuggestions]);
 
   const addInterest = () => {
     if (newInterest.trim() && !interests.includes(newInterest.trim())) {
@@ -90,6 +139,18 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate all fields
+    if (languages.length === 0) {
+      setErrors({ languages: 'Select at least one language' });
+      setStep(1);
+      return;
+    }
+
+    if (interests.length === 0) {
+      setErrors({ interests: 'Add at least one interest' });
+      return;
+    }
+
     try {
       profileSchema.parse({
         languages,
@@ -98,6 +159,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
         interests,
       });
 
+      setErrors({});
       onSubmit({
         languages,
         frameworks,
@@ -111,6 +173,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
           newErrors[error.path[0]] = error.message;
         });
         setErrors(newErrors);
+        console.error('Validation errors:', newErrors);
       }
     }
   };
@@ -141,19 +204,94 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Programming Languages
             </h2>
-            <p className="text-gray-600 mb-6">
-              Select the languages you're comfortable with
+            <p className="text-gray-600 mb-4">
+              Select or type to add languages you're comfortable with
             </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {POPULAR_LANGUAGES.map((lang) => (
+            {/* Search/Add Input */}
+            <div className="mb-4 relative">
+              <input
+                type="text"
+                value={languageSearch}
+                onChange={(e) => {
+                  setLanguageSearch(e.target.value);
+                  setShowLanguageSuggestions(true);
+                }}
+                onFocus={() => setShowLanguageSuggestions(true)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomLanguage();
+                  }
+                }}
+                placeholder="Search or type a language..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              
+              {/* Suggestions Dropdown */}
+              {showLanguageSuggestions && languageSearch && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredLanguages.length > 0 ? (
+                    filteredLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => {
+                          toggleItem(lang, languages, setLanguages);
+                          setLanguageSearch('');
+                          setShowLanguageSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors"
+                      >
+                        {lang}
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={addCustomLanguage}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-600"
+                    >
+                      + Add "{languageSearch}"
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Selected Languages */}
+            {languages.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {languages.map((lang) => (
+                  <span
+                    key={lang}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center gap-2 text-sm"
+                  >
+                    {lang}
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(lang, languages, setLanguages)}
+                      className="text-blue-600 hover:text-blue-800 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Popular Languages Grid */}
+            <p className="text-sm text-gray-600 mb-2">Popular languages:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {POPULAR_LANGUAGES.slice(0, 12).map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => toggleItem(lang, languages, setLanguages)}
-                  className={`px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
+                  disabled={languages.includes(lang)}
+                  className={`px-3 py-2 rounded-lg border text-sm transition-all ${
                     languages.includes(lang)
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 scale-105'
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 opacity-50'
                       : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                   }`}
                 >
@@ -176,23 +314,98 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Frameworks & Libraries
             </h2>
-            <p className="text-gray-600 mb-6">
-              Select frameworks you have experience with (optional)
+            <p className="text-gray-600 mb-4">
+              Select or type to add frameworks (optional)
             </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {POPULAR_FRAMEWORKS.map((framework) => (
+            {/* Search/Add Input */}
+            <div className="mb-4 relative">
+              <input
+                type="text"
+                value={frameworkSearch}
+                onChange={(e) => {
+                  setFrameworkSearch(e.target.value);
+                  setShowFrameworkSuggestions(true);
+                }}
+                onFocus={() => setShowFrameworkSuggestions(true)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomFramework();
+                  }
+                }}
+                placeholder="Search or type a framework..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              
+              {/* Suggestions Dropdown */}
+              {showFrameworkSuggestions && frameworkSearch && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredFrameworks.length > 0 ? (
+                    filteredFrameworks.map((fw) => (
+                      <button
+                        key={fw}
+                        type="button"
+                        onClick={() => {
+                          toggleItem(fw, frameworks, setFrameworks);
+                          setFrameworkSearch('');
+                          setShowFrameworkSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors"
+                      >
+                        {fw}
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={addCustomFramework}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 text-blue-600"
+                    >
+                      + Add "{frameworkSearch}"
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Selected Frameworks */}
+            {frameworks.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {frameworks.map((fw) => (
+                  <span
+                    key={fw}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center gap-2 text-sm"
+                  >
+                    {fw}
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(fw, frameworks, setFrameworks)}
+                      className="text-blue-600 hover:text-blue-800 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Popular Frameworks Grid */}
+            <p className="text-sm text-gray-600 mb-2">Popular frameworks:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {POPULAR_FRAMEWORKS.slice(0, 12).map((fw) => (
                 <button
-                  key={framework}
+                  key={fw}
                   type="button"
-                  onClick={() => toggleItem(framework, frameworks, setFrameworks)}
-                  className={`px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
-                    frameworks.includes(framework)
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 scale-105'
+                  onClick={() => toggleItem(fw, frameworks, setFrameworks)}
+                  disabled={frameworks.includes(fw)}
+                  className={`px-3 py-2 rounded-lg border text-sm transition-all ${
+                    frameworks.includes(fw)
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 opacity-50'
                       : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                   }`}
                 >
-                  {framework}
+                  {fw}
                 </button>
               ))}
             </div>

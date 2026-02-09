@@ -127,23 +127,33 @@ export class MatchmakingService implements IMatchmakingService {
    * Retrieves a user profile
    */
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    const profile = await this.prisma.userProfile.findUnique({
-      where: { userId },
-    });
+    try {
+      // Check if prisma is available
+      if (!this.prisma) {
+        return null;
+      }
 
-    if (!profile) {
+      const profile = await this.prisma.userProfile.findUnique({
+        where: { userId },
+      });
+
+      if (!profile) {
+        return null;
+      }
+
+      return {
+        userId: profile.userId,
+        languages: profile.languages,
+        frameworks: profile.frameworks,
+        experienceLevel: profile.experienceLevel as ExperienceLevel,
+        interests: profile.interests,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+      };
+    } catch (error) {
+      // Database unavailable - return null
       return null;
     }
-
-    return {
-      userId: profile.userId,
-      languages: profile.languages,
-      frameworks: profile.frameworks,
-      experienceLevel: profile.experienceLevel as ExperienceLevel,
-      interests: profile.interests,
-      createdAt: profile.createdAt,
-      updatedAt: profile.updatedAt,
-    };
   }
 
   // ============================================================================

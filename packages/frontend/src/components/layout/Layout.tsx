@@ -15,7 +15,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         Skip to main content
       </a>
       
-      <CustomCursor />
+      {/* Custom cursor disabled for better performance */}
+      {/* <CustomCursor /> */}
       <Header />
       <main id="main-content" className="flex-1 container mx-auto px-4 py-8 max-w-7xl" tabIndex={-1}>
         {children}

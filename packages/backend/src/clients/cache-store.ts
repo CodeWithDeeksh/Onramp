@@ -3,6 +3,10 @@
  * Handles all caching operations using Redis
  */
 
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
+
 import Redis from 'ioredis';
 import type { ICacheStore } from '../types/interfaces.js';
 import { ServiceError, ErrorCode } from '../types/errors.js';
@@ -305,3 +309,22 @@ export class CacheStore implements ICacheStore {
     return this.client.status === 'ready';
   }
 }
+
+// Create a singleton Redis instance for the application
+export const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  retryStrategy: (times) => {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  },
+  maxRetriesPerRequest: 3,
+  enableReadyCheck: true,
+  lazyConnect: false,
+});
+
+redis.on('error', (error) => {
+  console.error('Redis connection error:', error);
+});
+
+redis.on('connect', () => {
+  console.log('Redis connected successfully');
+});

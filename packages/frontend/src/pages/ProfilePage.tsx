@@ -28,22 +28,29 @@ const ProfilePage: React.FC = () => {
         updatedAt: new Date(),
       };
 
-      const response = await userService.saveProfile(fullProfile);
-      
-      // Update context with the saved profile
-      setUserProfile({
-        ...fullProfile,
-        userId: response.id,
-      });
+      try {
+        // Try to save to backend
+        const response = await userService.saveProfile(fullProfile);
+        setUserProfile({
+          ...fullProfile,
+          userId: response.id,
+        });
+      } catch (apiError) {
+        // Fallback: Save to localStorage if backend fails
+        console.log('Backend unavailable, using local storage');
+        localStorage.setItem('userProfile', JSON.stringify(fullProfile));
+        setUserProfile(fullProfile);
+      }
 
       setSuccessMessage('Profile saved successfully!');
       
-      // Redirect to recommendations after 2 seconds
+      // Redirect to recommendations after 1.5 seconds
       setTimeout(() => {
         navigate('/recommendations');
-      }, 2000);
+      }, 1500);
     } catch (err: any) {
       const errorMessage =
+        err.response?.data?.error?.message ||
         err.response?.data?.message ||
         err.message ||
         'Failed to save profile. Please try again.';

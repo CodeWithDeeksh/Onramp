@@ -3,6 +3,10 @@
  * Ensures a single Prisma instance is used across the application
  */
 
+// Load environment variables first
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger.js';
 

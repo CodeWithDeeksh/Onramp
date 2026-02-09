@@ -34,8 +34,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'axios'],
   },
-  // Esbuild options
-  esbuild: {
-    drop: ['console', 'debugger'],
-  },
+  // Esbuild options - keep console logs for debugging
+  // esbuild: {
+  //   drop: ['console', 'debugger'],
+  // },
 });

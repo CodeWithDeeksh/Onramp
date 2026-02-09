@@ -22,7 +22,7 @@ export function createRepositoryRouter(): Router {
   const githubClient = new GitHubClient(process.env.GITHUB_TOKEN);
   const llmClient = new LLMClient({
     provider: (process.env.LLM_PROVIDER as 'openai' | 'anthropic') || 'openai',
-    apiKey: process.env.LLM_API_KEY || '',
+    apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || '',
   });
   const cacheStore = new CacheStore({
     host: process.env.REDIS_HOST || 'localhost',

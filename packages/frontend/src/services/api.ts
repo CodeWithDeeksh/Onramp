@@ -30,10 +30,19 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('API Response:', response.config.url, response.status, response.data);
     return response;
   },
   (error: AxiosError) => {
     // Handle errors globally
+    console.error('API Error Details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+
     if (error.response) {
       // Server responded with error status
       const status = error.response.status;
@@ -58,7 +67,7 @@ apiClient.interceptors.response.use(
       }
     } else if (error.request) {
       // Request made but no response
-      console.error('Network error - no response received');
+      console.error('Network error - no response received', error.request);
     } else {
       // Error setting up request
       console.error('Request setup error:', error.message);

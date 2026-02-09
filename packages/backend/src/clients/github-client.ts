@@ -12,10 +12,20 @@ export class GitHubClient implements IGitHubClient {
   private octokit: Octokit;
   private maxRetries: number;
   private retryDelay: number;
+  private hasValidToken: boolean;
 
   constructor(token?: string, maxRetries = 3, retryDelay = 1000) {
+    const authToken = token || process.env.GITHUB_TOKEN;
+    
+    // Check if token is valid (not placeholder)
+    this.hasValidToken = !!(
+      authToken && 
+      authToken !== 'your_github_personal_access_token_here' &&
+      authToken.length > 10
+    );
+
     this.octokit = new Octokit({
-      auth: token || process.env.GITHUB_TOKEN,
+      auth: this.hasValidToken ? authToken : undefined,
       userAgent: 'Onramp/1.0.0',
       throttle: {
         onRateLimit: (retryAfter, options, octokit, retryCount) => {
@@ -40,6 +50,11 @@ export class GitHubClient implements IGitHubClient {
    * Get repository information from GitHub
    */
   async getRepository(owner: string, repo: string): Promise<GitHubRepository> {
+    // Return mock data if no valid token
+    if (!this.hasValidToken) {
+      return this.getMockRepository(owner, repo);
+    }
+
     try {
       const response = await this.retryRequest(async () => {
         return await this.octokit.repos.get({ owner, repo });
@@ -47,6 +62,10 @@ export class GitHubClient implements IGitHubClient {
 
       return response.data as GitHubRepository;
     } catch (error: any) {
+      if (error.status === 401) {
+        // Invalid credentials - return mock data
+        return this.getMockRepository(owner, repo);
+      }
       if (error.status === 404) {
         throw new RepositoryError(
           ErrorCode.REPOSITORY_NOT_FOUND,
@@ -73,6 +92,11 @@ export class GitHubClient implements IGitHubClient {
    * Get file structure of a repository
    */
   async getFileStructure(owner: string, repo: string): Promise<FileNode[]> {
+    // Return mock data if no valid token
+    if (!this.hasValidToken) {
+      return this.getMockFileStructure(owner, repo);
+    }
+
     try {
       const tree = await this.retryRequest(async () => {
         return await this.octokit.git.getTree({
@@ -85,6 +109,10 @@ export class GitHubClient implements IGitHubClient {
 
       return this.buildFileTree(tree.data.tree);
     } catch (error: any) {
+      if (error.status === 401) {
+        // Invalid credentials - return mock data
+        return this.getMockFileStructure(owner, repo);
+      }
       if (error.status === 404) {
         throw new RepositoryError(
           ErrorCode.REPOSITORY_NOT_FOUND,
@@ -104,6 +132,11 @@ export class GitHubClient implements IGitHubClient {
    * Get README content from a repository
    */
   async getReadme(owner: string, repo: string): Promise<string> {
+    // Return mock data if no valid token
+    if (!this.hasValidToken) {
+      return this.getMockReadme(owner, repo);
+    }
+
     try {
       const response = await this.retryRequest(async () => {
         return await this.octokit.repos.getReadme({ owner, repo });
@@ -113,6 +146,10 @@ export class GitHubClient implements IGitHubClient {
       const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
       return content;
     } catch (error: any) {
+      if (error.status === 401) {
+        // Invalid credentials - return mock data
+        return this.getMockReadme(owner, repo);
+      }
       if (error.status === 404) {
         // README not found is not critical, return empty string
         return '';
@@ -133,6 +170,11 @@ export class GitHubClient implements IGitHubClient {
     repo: string,
     state: 'open' | 'closed' | 'all' = 'open'
   ): Promise<GitHubIssue[]> {
+    // Return mock data if no valid token
+    if (!this.hasValidToken) {
+      return this.getMockIssues(owner, repo);
+    }
+
     try {
       const response = await this.retryRequest(async () => {
         return await this.octokit.issues.listForRepo({
@@ -158,6 +200,10 @@ export class GitHubClient implements IGitHubClient {
         url: issue.html_url,
       }));
     } catch (error: any) {
+      if (error.status === 401) {
+        // Invalid credentials - return mock data
+        return this.getMockIssues(owner, repo);
+      }
       if (error.status === 404) {
         throw new RepositoryError(
           ErrorCode.REPOSITORY_NOT_FOUND,
@@ -257,5 +303,110 @@ export class GitHubClient implements IGitHubClient {
     }
 
     return root;
+  }
+
+  // ============================================================================
+  // Mock Data Methods (for demo without GitHub token)
+  // ============================================================================
+
+  private getMockRepository(owner: string, repo: string): GitHubRepository {
+    return {
+      id: 123456789,
+      name: repo,
+      full_name: `${owner}/${repo}`,
+      owner: { login: owner },
+      description: '⚠️ Demo Mode: Connect GitHub to see real data',
+      stargazers_count: 42,
+      forks_count: 10,
+      open_issues_count: 5,
+      language: 'TypeScript',
+      topics: ['demo', 'sample'],
+      updated_at: new Date().toISOString(),
+      license: { name: 'MIT' },
+    } as any;
+  }
+
+  private getMockFileStructure(owner: string, repo: string): FileNode[] {
+    return [
+      {
+        path: 'README.md',
+        name: 'README.md',
+        type: 'file',
+        size: 1024,
+        extension: 'md',
+      },
+      {
+        path: 'src',
+        name: 'src',
+        type: 'directory',
+        children: [
+          {
+            path: 'src/index.ts',
+            name: 'index.ts',
+            type: 'file',
+            size: 512,
+            extension: 'ts',
+          },
+          {
+            path: 'src/utils.ts',
+            name: 'utils.ts',
+            type: 'file',
+            size: 256,
+            extension: 'ts',
+          },
+        ],
+      },
+      {
+        path: 'package.json',
+        name: 'package.json',
+        type: 'file',
+        size: 2048,
+        extension: 'json',
+      },
+    ];
+  }
+
+  private getMockReadme(owner: string, repo: string): string {
+    return `# ${repo}
+
+⚠️ **Demo Mode Active**
+
+You're viewing sample data because GitHub is not connected. To see real repository analysis:
+
+1. Get a GitHub Personal Access Token from https://github.com/settings/tokens
+2. Add it to your \`.env\` file: \`GITHUB_TOKEN=your_token_here\`
+3. Restart the server
+
+## About This Repository
+
+This is a sample repository structure shown for demonstration purposes.
+
+## Features
+
+- Feature 1: Sample feature
+- Feature 2: Another sample feature
+- Feature 3: Demo functionality
+
+## Getting Started
+
+Connect your GitHub token to analyze real repositories!
+`;
+  }
+
+  private getMockIssues(owner: string, repo: string): GitHubIssue[] {
+    return [
+      {
+        id: 1,
+        number: 1,
+        title: '⚠️ Demo Issue: Connect GitHub to see real issues',
+        body: 'This is a sample issue shown in demo mode. Add your GitHub token to see actual repository issues.',
+        state: 'open',
+        labels: ['demo', 'good first issue'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        comments: 0,
+        url: `https://github.com/${owner}/${repo}/issues/1`,
+      },
+    ];
   }
 }

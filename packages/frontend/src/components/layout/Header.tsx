@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useUser } from '../../context';
 
 const Header: React.FC = () => {
   const location = useLocation();
+  const { userProfile } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -47,7 +49,14 @@ const Header: React.FC = () => {
               Recommendations
             </Link>
             <Link to="/profile" className={navLinkClass('/profile')}>
-              Profile
+              {userProfile ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Profile
+                </span>
+              ) : (
+                'Profile'
+              )}
             </Link>
           </div>
 

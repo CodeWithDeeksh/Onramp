@@ -15,7 +15,17 @@ export const repositoryService = {
       '/repositories/analyze',
       { url } as AnalyzeRepositoryRequest
     );
-    return response.data;
+    
+    // Transform date strings to Date objects
+    const data = response.data;
+    return {
+      ...data,
+      analyzedAt: new Date(data.analyzedAt),
+      metadata: {
+        ...data.metadata,
+        lastUpdated: new Date(data.metadata.lastUpdated),
+      },
+    };
   },
 
   /**
@@ -28,6 +38,16 @@ export const repositoryService = {
     const response = await apiClient.get<RepositoryAnalysis>(
       `/repositories/${owner}/${repo}`
     );
-    return response.data;
+    
+    // Transform date strings to Date objects
+    const data = response.data;
+    return {
+      ...data,
+      analyzedAt: new Date(data.analyzedAt),
+      metadata: {
+        ...data.metadata,
+        lastUpdated: new Date(data.metadata.lastUpdated),
+      },
+    };
   },
 };

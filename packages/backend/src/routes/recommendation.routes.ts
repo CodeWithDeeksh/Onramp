@@ -6,6 +6,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { MatchmakingService } from '../services/matchmaking-service.js';
 import { LLMClient } from '../clients/llm-client.js';
+import { CacheStore } from '../clients/cache-store.js';
 import { prisma } from '../utils/prisma.js';
 import { z } from 'zod';
 import { ValidationError } from '../types/errors.js';
@@ -23,7 +24,11 @@ export function createRecommendationRouter(): Router {
     provider: (process.env.LLM_PROVIDER as 'openai' | 'anthropic') || 'openai',
     apiKey: process.env.LLM_API_KEY || '',
   });
-  const matchmakingService = new MatchmakingService(llmClient, prisma);
+  const cacheStore = new CacheStore({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+  });
+  const matchmakingService = new MatchmakingService(prisma, llmClient, cacheStore);
 
   /**
    * POST /api/recommendations

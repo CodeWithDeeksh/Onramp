@@ -1,14 +1,54 @@
-# Onramp - AI-Powered Open Source Onboarding
+# Onramp - AI-Powered Open Source Onboarding Assistant
 
-Onramp is an AI-powered assistant that helps developers find and contribute to open-source projects. It analyzes repositories, matches developers with suitable projects, and provides personalized contribution guidance.
+**Onramp** is an intelligent onboarding assistant that helps developers discover, understand, and contribute to open-source projects. Built for hackathons and real-world use, it combines real GitHub data with AI-powered analysis to provide personalized guidance.
 
-## Features
+## 🎯 Problem Statement
 
-- **Repository Analysis**: Analyze GitHub repositories to understand architecture, modules, and entry points
-- **Smart Matching**: Get personalized project recommendations based on your skills and interests
-- **Contribution Guidance**: Receive step-by-step guidance for making your first contribution
-- **Issue Classification**: Find beginner-friendly issues with AI-powered difficulty classification
-- **Interactive UI**: Beautiful, animated interface with custom cursor effects and smooth transitions
+New developers face significant barriers when trying to contribute to open-source:
+- **Overwhelming codebases** - Hard to understand large, unfamiliar projects
+- **Finding the right project** - Difficult to match skills with suitable repositories
+- **Getting started** - No clear path from interest to first contribution
+- **Issue selection** - Hard to identify beginner-friendly tasks
+
+## 💡 Solution
+
+Onramp provides an AI-powered onboarding experience that:
+1. **Analyzes repositories** - Understands architecture, modules, and complexity
+2. **Matches developers** - Recommends projects based on skills and interests
+3. **Guides contributions** - Provides step-by-step onboarding paths
+4. **Classifies issues** - Identifies beginner-friendly contribution opportunities
+
+## ✨ Key Features
+
+### 🔍 Repository Analysis
+- **Real GitHub Integration** - Fetches actual repository data (stars, structure, README)
+- **Intelligent Analysis** - Analyzes architecture patterns, modules, and technologies
+- **Entry Points** - Identifies best files to start exploring
+- **Detailed Insights** - Shows file lists, complexity levels, and module purposes
+
+### 🎯 Smart Matching
+- **Profile-Based** - Matches based on languages, frameworks, and experience level
+- **Guest Mode** - Works without signup for instant access
+- **Personalized Scores** - Calculates match scores across multiple dimensions
+- **Curated Recommendations** - Suggests React, VS Code, Next.js, and more
+
+### 🗺️ Contribution Guidance
+- **4-Step Onboarding Path** - From documentation to first contribution
+- **Personalized Difficulty** - Adjusts based on experience level
+- **Resource Links** - Direct links to README, issues, and documentation
+- **Progress Tracking** - Mark steps as complete
+
+### 🎨 Beautiful UI/UX
+- **Modern Design** - Clean, professional interface with smooth animations
+- **Welcome Modal** - Sign in, sign up, or continue as guest
+- **Responsive** - Works on desktop and mobile
+- **Fast & Smooth** - Optimized performance, no lag
+
+### 🛡️ Robust Architecture
+- **Graceful Fallbacks** - Works without API keys (demo mode)
+- **Error Handling** - Comprehensive try-catch blocks throughout
+- **Caching** - Redis caching for performance
+- **Type Safety** - Full TypeScript coverage
 
 ## Tech Stack
 
@@ -57,6 +97,8 @@ docker-compose up -d
 
 This starts PostgreSQL and Redis containers.
 
+**Note**: If you don't have Docker installed, the app will run in **Demo Mode** with sample data. See the Demo Mode section below for details.
+
 ### 4. Configure environment variables
 
 #### Backend Configuration
@@ -67,7 +109,12 @@ Copy the example file and update with your credentials:
 cp packages/backend/.env.example packages/backend/.env
 ```
 
-Required environment variables:
+**For Demo Mode** (no API keys needed):
+- The app will work with sample data
+- You'll see "⚠️ Demo Mode" warnings in the analysis
+- Perfect for testing the UI and flow
+
+**For Full Functionality** (requires API keys):
 - `GITHUB_TOKEN`: Your GitHub Personal Access Token
 - `OPENAI_API_KEY`: Your OpenAI API key (or `ANTHROPIC_API_KEY` for Anthropic)
 - `DATABASE_URL`: PostgreSQL connection string (default works with Docker Compose)
@@ -109,6 +156,45 @@ npm run dev
 ```
 
 Frontend runs on http://localhost:3000
+
+## Demo Mode
+
+Onramp includes a **Demo Mode** that allows you to test the application without setting up API keys or external services. This is perfect for hackathons, quick demos, or exploring the UI.
+
+### What Works in Demo Mode
+
+✅ **Full UI Experience**: All pages and components work normally  
+✅ **Sample Data**: Repository analysis returns realistic mock data  
+✅ **No Setup Required**: Just run `npm run dev` in both packages  
+✅ **Clear Indicators**: Demo data is marked with "⚠️ Demo Mode" warnings
+
+### What's Limited in Demo Mode
+
+⚠️ **GitHub Data**: Shows sample repository structure instead of real data  
+⚠️ **AI Analysis**: Returns basic analysis instead of AI-powered insights  
+⚠️ **Database**: Requires PostgreSQL/Redis for persistence (optional)
+
+### Enabling Full Functionality
+
+To get real GitHub data and AI-powered analysis:
+
+1. **Get API Keys**:
+   - GitHub Token: https://github.com/settings/tokens (select `repo` scope)
+   - OpenAI Key: https://platform.openai.com/api-keys
+
+2. **Update `.env`**:
+   ```env
+   GITHUB_TOKEN=ghp_your_token_here
+   OPENAI_API_KEY=sk-your_key_here
+   ```
+
+3. **Restart Backend**:
+   ```bash
+   cd packages/backend
+   npm run dev
+   ```
+
+The app will automatically detect valid API keys and switch to full functionality!
 
 ## Development
 

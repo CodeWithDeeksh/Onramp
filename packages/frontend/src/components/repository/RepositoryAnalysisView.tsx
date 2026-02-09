@@ -12,6 +12,11 @@ const RepositoryAnalysisView: React.FC<RepositoryAnalysisViewProps> = ({
     new Set()
   );
 
+  // Debug log
+  React.useEffect(() => {
+    console.log('RepositoryAnalysisView received analysis:', analysis);
+  }, [analysis]);
+
   const toggleModule = (index: number) => {
     setExpandedModules((prev) => {
       const newSet = new Set(prev);

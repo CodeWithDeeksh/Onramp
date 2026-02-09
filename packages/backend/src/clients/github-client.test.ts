@@ -32,7 +32,8 @@ describe('GitHubClient', () => {
   let client: GitHubClient;
 
   beforeEach(() => {
-    client = new GitHubClient('test-token');
+    // Use a valid-looking token to test real functionality, not demo mode
+    client = new GitHubClient('ghp_validtokenfortest1234567890');
   });
 
   describe('getRepository', () => {

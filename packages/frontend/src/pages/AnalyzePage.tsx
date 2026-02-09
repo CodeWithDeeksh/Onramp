@@ -20,17 +20,21 @@ const AnalyzePage: React.FC = () => {
   const handleAnalyze = async (url: string) => {
     setIsAnalyzing(true);
     setAnalysisError(null);
+    setCurrentRepository(null); // Clear previous results
 
     try {
+      console.log('Analyzing repository:', url);
       const analysis = await repositoryService.analyzeRepository(url);
+      console.log('Analysis received:', analysis);
       setCurrentRepository(analysis);
     } catch (error: any) {
+      console.error('Analysis error:', error);
       const errorMessage =
+        error.response?.data?.error?.message ||
         error.response?.data?.message ||
         error.message ||
         'Failed to analyze repository. Please try again.';
       setAnalysisError(errorMessage);
-      console.error('Analysis error:', error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -65,9 +69,23 @@ const AnalyzePage: React.FC = () => {
       )}
 
       <div className="mt-8 w-full flex justify-center">
-        {isAnalyzing && <RepositoryAnalysisSkeleton />}
+        {isAnalyzing && (
+          <>
+            {console.log('Showing skeleton loader')}
+            <RepositoryAnalysisSkeleton />
+          </>
+        )}
         {!isAnalyzing && currentRepository && (
-          <RepositoryAnalysisView analysis={currentRepository} />
+          <>
+            {console.log('Showing analysis view with data:', currentRepository)}
+            <RepositoryAnalysisView analysis={currentRepository} />
+          </>
+        )}
+        {!isAnalyzing && !currentRepository && !analysisError && (
+          <div className="text-gray-500 text-center">
+            {console.log('No data to display')}
+            <p>Enter a repository URL above to get started</p>
+          </div>
         )}
       </div>
     </div>

@@ -20,13 +20,16 @@ const RecommendationsPage: React.FC = () => {
 
   const fetchRecommendations = async () => {
     if (!userProfile) return;
+    await fetchRecommendationsWithProfile(userProfile);
+  };
 
+  const fetchRecommendationsWithProfile = async (profile: any) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const recs = await recommendationService.getRecommendations(
-        userProfile.userId,
+        profile.userId,
         10
       );
       setRecommendations(recs);
@@ -52,18 +55,39 @@ const RecommendationsPage: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-fade-in">
         <div className="max-w-md">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Create Your Profile First
+            Get Personalized Recommendations
           </h1>
           <p className="text-gray-600 mb-6">
-            To get personalized project recommendations, you need to create a
-            profile with your skills and interests.
+            Create a profile to get recommendations tailored to your skills and interests.
           </p>
-          <button
-            onClick={() => navigate('/profile')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-          >
-            Create Profile
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate('/profile')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            >
+              Create Profile
+            </button>
+            <button
+              onClick={() => {
+                // Create a guest profile
+                const guestProfile = {
+                  userId: 'guest',
+                  languages: ['JavaScript', 'TypeScript'],
+                  frameworks: ['React'],
+                  experienceLevel: 'intermediate' as const,
+                  interests: ['web development'],
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                };
+                // Temporarily set guest profile to trigger recommendations
+                setRecommendations([]);
+                fetchRecommendationsWithProfile(guestProfile);
+              }}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200"
+            >
+              Continue as Guest
+            </button>
+          </div>
         </div>
       </div>
     );

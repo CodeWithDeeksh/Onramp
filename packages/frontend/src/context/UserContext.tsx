@@ -15,9 +15,24 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    // Load from localStorage on mount
+    try {
+      const stored = localStorage.getItem('userProfile');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Save to localStorage whenever profile changes
+  React.useEffect(() => {
+    if (userProfile) {
+      localStorage.setItem('userProfile', JSON.stringify(userProfile));
+    }
+  }, [userProfile]);
 
   return (
     <UserContext.Provider

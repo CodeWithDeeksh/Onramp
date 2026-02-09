@@ -63,8 +63,12 @@ const RepositoryInputForm: React.FC<RepositoryInputFormProps> = ({
     e.preventDefault();
     setTouched(true);
 
+    console.log('Form submitted with URL:', url);
     if (validateUrl(url)) {
+      console.log('URL is valid, calling onSubmit');
       onSubmit(url);
+    } else {
+      console.log('URL validation failed');
     }
   };
 

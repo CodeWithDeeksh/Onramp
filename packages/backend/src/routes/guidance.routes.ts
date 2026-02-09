@@ -36,9 +36,10 @@ export function createGuidanceRouter(): Router {
   const repositoryService = new RepositoryService(githubClient, llmClient, cacheStore);
   const matchmakingService = new MatchmakingService(llmClient, prisma);
   const guidanceService = new GuidanceService(
+    prisma,
     llmClient,
-    repositoryService,
-    matchmakingService
+    cacheStore,
+    repositoryService
   );
 
   /**
