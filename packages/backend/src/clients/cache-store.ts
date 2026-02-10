@@ -12,36 +12,47 @@ import type { ICacheStore } from '../types/interfaces.js';
 import { ServiceError, ErrorCode } from '../types/errors.js';
 
 export class CacheStore implements ICacheStore {
-  private client: Redis;
+  private client: Redis | null;
   private defaultTTL: number;
+  private memoryCache: Map<string, { value: string; expiry: number }>;
+  private useMemoryFallback: boolean;
 
   constructor(redisUrl?: string, defaultTTL = 3600) {
     this.defaultTTL = defaultTTL;
+    this.memoryCache = new Map();
+    this.useMemoryFallback = false;
+    this.client = null;
 
     try {
       this.client = new Redis(redisUrl || process.env.REDIS_URL || 'redis://localhost:6379', {
         retryStrategy: (times) => {
+          if (times > 3) {
+            console.warn('Redis unavailable, using in-memory cache fallback');
+            this.useMemoryFallback = true;
+            return null; // Stop retrying
+          }
           const delay = Math.min(times * 50, 2000);
           return delay;
         },
         maxRetriesPerRequest: 3,
         enableReadyCheck: true,
         lazyConnect: false,
+        connectTimeout: 5000,
       });
 
       this.client.on('error', (error) => {
-        console.error('Redis connection error:', error);
+        console.error('Redis connection error:', error.message);
+        this.useMemoryFallback = true;
       });
 
       this.client.on('connect', () => {
         console.log('Redis connected successfully');
+        this.useMemoryFallback = false;
       });
     } catch (error: any) {
-      throw new ServiceError(
-        ErrorCode.CACHE_ERROR,
-        `Failed to initialize Redis client: ${error.message}`,
-        { error: error.message }
-      );
+      console.warn('Redis initialization failed, using in-memory cache:', error.message);
+      this.useMemoryFallback = true;
+      this.client = null;
     }
   }
 
@@ -50,6 +61,16 @@ export class CacheStore implements ICacheStore {
    */
   async get<T>(key: string): Promise<T | null> {
     try {
+      if (this.useMemoryFallback || !this.client) {
+        const cached = this.memoryCache.get(key);
+        if (!cached) return null;
+        if (cached.expiry < Date.now()) {
+          this.memoryCache.delete(key);
+          return null;
+        }
+        return JSON.parse(cached.value) as T;
+      }
+
       const value = await this.client.get(key);
 
       if (!value) {
@@ -58,10 +79,9 @@ export class CacheStore implements ICacheStore {
 
       return JSON.parse(value) as T;
     } catch (error: any) {
-      throw new ServiceError(ErrorCode.CACHE_ERROR, `Failed to get cache key ${key}`, {
-        key,
-        error: error.message,
-      });
+      console.warn(`Cache get error for key ${key}, using memory fallback:`, error.message);
+      this.useMemoryFallback = true;
+      return null;
     }
   }
 
@@ -73,16 +93,22 @@ export class CacheStore implements ICacheStore {
       const serialized = JSON.stringify(value);
       const expirationTime = ttl || this.defaultTTL;
 
+      if (this.useMemoryFallback || !this.client) {
+        const expiry = Date.now() + (expirationTime * 1000);
+        this.memoryCache.set(key, { value: serialized, expiry });
+        return;
+      }
+
       if (expirationTime > 0) {
         await this.client.setex(key, expirationTime, serialized);
       } else {
         await this.client.set(key, serialized);
       }
     } catch (error: any) {
-      throw new ServiceError(ErrorCode.CACHE_ERROR, `Failed to set cache key ${key}`, {
-        key,
-        error: error.message,
-      });
+      console.warn(`Cache set error for key ${key}, using memory fallback:`, error.message);
+      this.useMemoryFallback = true;
+      const expiry = Date.now() + ((ttl || this.defaultTTL) * 1000);
+      this.memoryCache.set(key, { value: JSON.stringify(value), expiry });
     }
   }
 
@@ -306,25 +332,40 @@ export class CacheStore implements ICacheStore {
    * Check if Redis is connected
    */
   isConnected(): boolean {
+    if (!this.client) return false;
     return this.client.status === 'ready';
   }
 }
 
-// Create a singleton Redis instance for the application
-export const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  retryStrategy: (times) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-  maxRetriesPerRequest: 3,
-  enableReadyCheck: true,
-  lazyConnect: false,
-});
+// Create a singleton Redis instance for the application with fallback
+let redis: Redis | null = null;
 
-redis.on('error', (error) => {
-  console.error('Redis connection error:', error);
-});
+try {
+  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    retryStrategy: (times) => {
+      if (times > 3) {
+        console.warn('Redis unavailable for singleton instance');
+        return null;
+      }
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: true,
+    lazyConnect: false,
+    connectTimeout: 5000,
+  });
 
-redis.on('connect', () => {
-  console.log('Redis connected successfully');
-});
+  redis.on('error', (error) => {
+    console.error('Redis singleton connection error:', error.message);
+  });
+
+  redis.on('connect', () => {
+    console.log('Redis singleton connected successfully');
+  });
+} catch (error: any) {
+  console.warn('Redis singleton initialization failed:', error.message);
+  redis = null;
+}
+
+export { redis };
